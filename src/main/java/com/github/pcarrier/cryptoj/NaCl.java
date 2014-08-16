@@ -141,53 +141,53 @@ public final class NaCl {
   }
 
   // "merged crypto_core_salsa20, crypto_core_hsalsa20"
-  private static void core(byte[] out, byte[] in, byte[] k, byte[] c, boolean h) {
-    final int[] w = new int[16], x = new int[16], y = new int[16], t = new int[4];
-    int i, j, m;
-
-    for (i = 0; i < 4; i++) {
+  private static void core(
+          byte[] out,
+          byte[] in,
+          byte[] k,
+          byte[] c,
+          boolean h) {
+    final int[] w = new int[16],
+            x = new int[16],
+            y = new int[16],
+            t = new int[4];
+    for (int i = 0; i < 4; i++) {
       x[5 * i] = ld32(c, 4 * i);
       x[1 + i] = ld32(k, 4 * i);
       x[6 + i] = ld32(in, 4 * i);
       x[11 + i] = ld32(k, 16 + 4 * i);
     }
-
-    for (i = 0; i < 16; i++) {
-      y[i] = x[i];
-    }
-
-    for (i = 0; i < 20; i++) {
-      for (j = 0; j < 4; j++) {
-        for (m = 0; m < 4; m++) {
+    System.arraycopy(x, 0, y, 0, 16);
+    for (int i = 0; i < 20; i++) {
+      for (int j = 0; j < 4; j++) {
+        for (int m = 0; m < 4; m++) {
           t[m] = x[(5 * j + 4 * m) % 16];
         }
         t[1] ^= L32(t[0] + t[3], 7);
         t[2] ^= L32(t[1] + t[0], 9);
         t[3] ^= L32(t[2] + t[1], 13);
         t[0] ^= L32(t[3] + t[2], 18);
-        for (m = 0; m < 4; m++) {
+        for (int m = 0; m < 4; m++) {
           w[4 * j + (j + m) % 4] = t[m];
         }
       }
-      for (m = 0; m < 16; m++) {
-        x[m] = w[m];
-      }
+      System.arraycopy(w, 0, x, 0, 16);
     }
 
     if (h) {
-      for (i = 0; i < 16; i++) {
+      for (int i = 0; i < 16; i++) {
         x[i] += y[i];
       }
-      for (i = 0; i < 4; i++) {
+      for (int i = 0; i < 4; i++) {
         x[5 * i] -= ld32(c, 4 * i);
         x[6 + i] -= ld32(in, 4 * i);
       }
-      for (i = 0; i < 4; i++) {
+      for (int i = 0; i < 4; i++) {
         st32(out, 4 * i, x[5 * i]);
         st32(out, 16 + 4 * i, x[6 + i]);
       }
     } else {
-      for (i = 0; i < 16; i++) {
+      for (int i = 0; i < 16; i++) {
         st32(out, 4 * i, x[i] + y[i]);
       }
     }
@@ -202,7 +202,12 @@ public final class NaCl {
     core(out, in, k, c, false);
   }
 
-  private static void crypto_core_hsalsa20(byte[] out, byte[] in, byte[] k, byte[] c) {
+  private static void crypto_core_hsalsa20(
+          byte[] out,
+          byte[] in,
+          byte[] k,
+          byte[] c
+  ) {
     core(out, in, k, c, true);
   }
 
@@ -223,22 +228,15 @@ public final class NaCl {
           byte[] k
   ) {
     byte[] z = new byte[16], x = new byte[64];
-    int u, i;
-
     if (b == 0)
       return;
-
-    for (i = 0; i < 8; i++) {
-      z[i] = n[np + i];
-    }
-
+    System.arraycopy(n, np, z, 0, 8);
     while (b >= 64) {
       crypto_core_salsa20(x, z, k, sigma);
-      for (i = 0; i < 64; i++) {
+      for (int i = 0; i < 64; i++) {
         c[cp + i] = (byte) ((m == null ? 0 : m[mp + i]) ^ x[i]);
       }
-      u = 1;
-      for (i = 8; i < 16; i++) {
+      for (int i = 8, u = 1; i < 16; i++) {
         u += z[i];
         z[i] = (byte) (u & 0xFF);
         u >>>= 8;
@@ -251,7 +249,7 @@ public final class NaCl {
     }
     if (b > 0) {
       crypto_core_salsa20(x, z, k, sigma);
-      for (i = 0; i < b; i++) {
+      for (int i = 0; i < b; i++) {
         c[cp + i] = (byte) ((m == null ? 0 : m[mp + i]) ^ x[i]);
       }
     }
@@ -277,7 +275,7 @@ public final class NaCl {
           byte[] n,
           byte[] k
   ) {
-    byte s[] = new byte[32];
+    final byte s[] = new byte[32];
     crypto_core_hsalsa20(s, n, k, sigma);
     crypto_stream_salsa20(
             c, cp,
@@ -293,7 +291,7 @@ public final class NaCl {
           byte[] n,
           byte[] k
   ) {
-    byte s[] = new byte[32];
+    final byte s[] = new byte[32];
     crypto_core_hsalsa20(s, n, k, sigma);
     crypto_stream_salsa20_xor(
             c, cp,
@@ -326,9 +324,12 @@ public final class NaCl {
           long n,
           byte[] k
   ) {
-    int s, i, j, u;
-    int[] x = new int[17], r = new int[17], h = new int[17], c = new int[17], g = new int[17];
-    for (j = 0; j < 16; j++) {
+    final int[] x = new int[17],
+            r = new int[17],
+            h = new int[17],
+            c = new int[17],
+            g = new int[17];
+    for (int j = 0; j < 16; j++) {
       r[j] = k[j];
     }
     r[3] &= 15;
@@ -340,6 +341,7 @@ public final class NaCl {
     r[15] &= 15;
 
     while (n > 0) {
+      int j;
       for (j = 0; (j < 16) && (j < n); j++) {
         c[j] = m[mp + j];
       }
@@ -347,7 +349,7 @@ public final class NaCl {
       mp += j;
       n -= j;
       add1305(h, c);
-      for (i = 0; i < 17; i++) {
+      for (int i = 0; i < 17; i++) {
         x[i] = 0;
         for (j = 0; j < 17; j++) {
           x[i] += h[j] *
@@ -356,10 +358,8 @@ public final class NaCl {
                           320 * r[i + 17 - j]);
         }
       }
-      for (j = 0; j < 17; j++) {
-        h[i] = x[i];
-      }
-      u = 0;
+      System.arraycopy(x, 0, h, 0, 17);
+      int u = 0;
       for (j = 0; j < 16; j++) {
         u += h[j];
         h[j] = u & 0xff;
@@ -376,20 +376,18 @@ public final class NaCl {
       u += h[16];
       h[16] = u;
     }
-    for (j = 0; j < 17; j++) {
-      g[j] = h[j];
-    }
+    System.arraycopy(h, 0, g, 0, 17);
     add1305(h, minusp);
-    s = -(h[16] >>> 7);
-    for (j = 0; j < 17; j++) {
+    int s = -(h[16] >>> 7);
+    for (int j = 0; j < 17; j++) {
       h[j] ^= s & (g[j] ^ h[j]);
     }
-    for (j = 0; j < 16; j++) {
+    for (int j = 0; j < 16; j++) {
       c[j] = k[j + 16];
     }
     c[16] = 0;
     add1305(h, c);
-    for (j = 0; j < 16; j++) {
+    for (int j = 0; j < 16; j++) {
       out[outp + j] = (byte) (h[j] & 0xff);
     }
   }
@@ -405,8 +403,13 @@ public final class NaCl {
     return crypto_verify_16(h, hp, x, 0);
   }
 
-  private static void crypto_secretbox(byte[] c, byte[] m, long d, byte[] n, byte[] k)
-          throws NaclException {
+  private static void crypto_secretbox(
+          byte[] c,
+          byte[] m,
+          long d,
+          byte[] n,
+          byte[] k
+  ) throws NaclException {
     if (d < 32) {
       throw E;
     }
@@ -462,9 +465,7 @@ public final class NaCl {
 
   // "copy 256-bit integer"
   private static void set25519(int[] r, int[] a) {
-    for (int i = 0; i < 16; i++) {
-      r[i] = a[i];
-    }
+    System.arraycopy(a, 0, r, 0, 16);
   }
 
   // reduce mod 2^{255} - 19, radix 2^{16}
@@ -480,9 +481,9 @@ public final class NaCl {
 
   // "256-bit conditional swap"
   private static void sel25519(long[] p, long[] q, int b) {
-    long t, c = ~(b - 1);
+    long c = ~(b - 1);
     for (int i = 0; i < 16; i++) {
-      t = c & (p[i] ^ q[i]);
+      long t = c & (p[i] ^ q[i]);
       p[i] ^= t;
       q[i] ^= t;
     }
@@ -490,26 +491,23 @@ public final class NaCl {
 
   // "freeze integer mod 2^{255} − 19 and store"
   private static void pack25519(byte[] o, long[] n) {
-    int i, j, b;
     long[] m = gf(), t = gf();
-    for (i = 0; i < 16; i++) {
-      t[i] = n[i];
-    }
+    System.arraycopy(n, 0, t, 0, 16);
     car25519(t);
     car25519(t);
     car25519(t);
-    for (j = 0; j < 2; j++) {
+    for (int j = 0; j < 2; j++) {
       m[0] = t[0] - 0xffed;
-      for (i = 1; i < 15; i++) {
+      for (int i = 1; i < 15; i++) {
         m[i] = t[i] - 0xffff - ((m[i - 1] >>> 16) & 1);
         m[i - 1] &= 0xffff;
       }
       m[15] = t[15] - 0x7fff - ((m[14] >>> 16) & 1);
-      b = (int) ((m[15] >>> 16) & 1);
+      int b = (int) ((m[15] >>> 16) & 1);
       m[14] &= 0xffff;
       sel25519(t, m, 1 - b);
     }
-    for (i = 0; i < 16; i++) {
+    for (int i = 0; i < 16; i++) {
       o[2 * i] = (byte) (t[i] & 0xff);
       o[2 * i + 1] = (byte) (t[i] >>> 8);
     }
@@ -529,13 +527,13 @@ public final class NaCl {
   private static byte par25519(long[] a) {
     byte[] d = new byte[32];
     pack25519(d, a);
-    return (byte)(d[0] & 1);
+    return (byte) (d[0] & 1);
   }
 
   // "load integer mod 2^{255} − 19"
   private static void unpack25519(long[] o, byte[] n) {
     for (int i = 0; i < 16; i++) {
-      o[i] = n[2*i] + ((long)(n[2*1+1]) << 8);
+      o[i] = n[2 * i] + ((long) (n[2 * i + 1]) << 8);
     }
     o[15] &= 0x7fff;
   }
@@ -556,8 +554,20 @@ public final class NaCl {
 
   // "multiply mod 2^{255} − 19, radix 2^{16}"
   private static void M(long[] o, long[] a, long[] b) {
-
+    long[] t = new long[31];
+    for (int i = 0; i < 16; i++) {
+      for (int j = 0; j < 16; j++) {
+        t[i+j] += a[i] * b[j];
+      }
+    }
+    for (int i = 0; i < 15; i++) {
+      t[i] += 38 * t[i+16];
+    }
+    System.arraycopy(t, 0, o, 0, 16);
+    car25519(o);
+    car25519(o);
   }
+
 /*
 sv M(gf o,const gf a,const gf b)
 {
