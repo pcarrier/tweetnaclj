@@ -543,9 +543,13 @@ public final class NaCl {
     car25519(o, op);
   }
 
+  private static void M(final long[] o, final long[] a, final long[] b) {
+    M(o, 0, a, 0, b, 0);
+  }
+
   // "square mod 2^{255} − 19, radix 2^{16}"
   private static void S(final long[] o, final long[] a) {
-    M(o, 0, a, 0, a, 0);
+    M(o, a, a);
   }
 
   // "power 2^{255} - 21 mod 2^{255} - 19"
@@ -556,7 +560,7 @@ public final class NaCl {
     for (int a = 253; a >= 0; a--) {
       S(c, c);
       if (a != 2 && a != 4) {
-        M(c, 0, c, 0, i, 0);
+        M(c, c, i);
       }
     }
     System.arraycopy(c, 0, o, op, 16);
@@ -569,7 +573,7 @@ public final class NaCl {
     for (int a = 250; a >= 0; a--) {
       S(c, c);
       if (a != 1) {
-        M(c, 0, c, 0, i, 0);
+        M(c, c, i);
       }
     }
     System.arraycopy(c, 0, o, 0, 6);
@@ -595,17 +599,17 @@ public final class NaCl {
       Z(b, b, d);
       S(d, e);
       S(f, a);
-      M(a, 0, c, 0, a, 0);
-      M(c, 0, b, 0, e, 0);
+      M(a, c, a);
+      M(c, b, e);
       A(e, a, c);
       Z(a, a, c);
       S(b, a);
       Z(c, d, f);
-      M(a, 0, c, 0, _121665, 0);
+      M(a, c, _121665);
       A(a, a, d);
-      M(c, 0, c, 0, a, 0);
-      M(a, 0, d, 0, f, 0);
-      M(d, 0, b, 0, x, 0);
+      M(c, c, a);
+      M(a, d, f);
+      M(d, b, x);
       S(b, e);
       sel25519(a, b, r);
       sel25519(c, d, r);
@@ -728,7 +732,7 @@ public final class NaCl {
           0x4cc5d4becb3e42b6l, 0x597f299cfc657e2al, 0x5fcb6fab3ad6faecl, 0x6c44198c4a475817l,
   };
 
-  static final int crypto_hashblocks(final byte[] x,
+  static int crypto_hashblocks(final byte[] x,
                                      byte[] m, int mp,
                                      long n) {
     final long[] z = new long[8], b = new long[8], a = new long[8], w = new long[16];
@@ -806,9 +810,9 @@ public final class NaCl {
           (byte) 0x13, (byte) 0x7e, (byte) 0x21, (byte) 0x79,
   };
 
-  static final void crypto_hash(final byte[] out, int outp,
-                                final byte[] m, int mp,
-                                int n) {
+  static void crypto_hash(final byte[] out, int outp,
+                          final byte[] m, int mp,
+                          int n) {
     final byte[] h = iv.clone(),
             x = new byte[256];
     int b = n;
@@ -821,8 +825,7 @@ public final class NaCl {
     System.arraycopy(m, mp, x, 0, n);
     x[n] = (byte) 128;
 
-    n = 256 - (n < 112 ? 1 : 0);
-    x[n - 9] = (byte) (b >>> 61);
+    n = (n < 112) ? 128 : 256;
     ts64(x, n - 8, b << 3);
     crypto_hashblocks(h, x, 0, n);
 
@@ -836,23 +839,23 @@ public final class NaCl {
 
     Z(a, p[1], p[0]);
     Z(t, q[1], q[0]);
-    M(a, 0, a, 0, t, 0);
+    M(a, a, t);
     A(b, p[0], p[1]);
     A(t, q[0], q[1]);
-    M(b, 0, b, 0, t, 0);
-    M(c, 0, p[3], 0, q[3], 0);
-    M(c, 0, c, 0, D2, 0);
-    M(d, 0, p[2], 0, q[2], 0);
+    M(b, b, t);
+    M(c, p[3], q[3]);
+    M(c, c, D2);
+    M(d, p[2], q[2]);
     A(d, d, d);
     Z(e, b, a);
     Z(f, d, c);
     A(g, d, c);
     A(h, b, a);
 
-    M(p[0], 0, e, 0, f, 0);
-    M(p[1], 0, h, 0, g, 0);
-    M(p[2], 0, g, 0, f, 0);
-    M(p[3], 0, e, 0, h, 0);
+    M(p[0], e, f);
+    M(p[1], h, g);
+    M(p[2], g, f);
+    M(p[3], e, h);
   }
 
   // "conditionally swap curve points"
@@ -869,8 +872,8 @@ public final class NaCl {
                            final long[][] p) {
     final long[] tx = gf(), ty = gf(), zi = gf();
     inv25519(zi, 0, p[2], 0);
-    M(tx, 0, p[0], 0, zi, 0);
-    M(tx, 0, p[1], 0, zi, 0);
+    M(tx, p[0], zi);
+    M(tx, p[1], zi);
     pack25519(r, ty, 0);
     r[31] ^= par25519(tx) << 7;
   }
@@ -899,7 +902,7 @@ public final class NaCl {
     set25519(q[0], X);
     set25519(q[1], Y);
     set25519(q[2], gf1);
-    M(q[3], 0, X, 0, Y, 0);
+    M(q[3], X, Y);
     scalarmult(p, q, s, sp);
   }
 
@@ -1029,30 +1032,30 @@ public final class NaCl {
     set25519(r[2], gf1);
     unpack25519(r[1], p);
     S(num, r[1]);
-    M(den, 0, num, 0, D, 0);
+    M(den, num, D);
     Z(num, num, r[2]);
     A(den, r[2], den);
 
     S(den2, den);
     S(den4, den2);
-    M(den6, 0, den4, 0, den2, 0);
-    M(t, 0, den6, 0, num, 0);
-    M(t, 0, t, 0, den, 0);
+    M(den6, den4, den2);
+    M(t, den6, num);
+    M(t, t, den);
 
     pow2523(t, t);
-    M(t, 0, t, 0, num, 0);
-    M(t, 0, t, 0, den, 0);
-    M(t, 0, t, 0, den, 0);
-    M(r[0], 0, t, 0, den, 0);
+    M(t, t, num);
+    M(t, t, den);
+    M(t, t, den);
+    M(r[0], t, den);
 
     S(chk, r[0]);
-    M(chk, 0, chk, 0, den, 0);
+    M(chk, chk, den);
     if (neq25519(chk, num)) {
-      M(r[0], 0, r[0], 0, I, 0);
+      M(r[0], r[0], I);
     }
 
     S(chk, r[0]);
-    M(chk, 0, chk, 0, den, 0);
+    M(chk, chk, den);
     if (neq25519(chk, num))
       throw E;
 
@@ -1060,7 +1063,7 @@ public final class NaCl {
       Z(r[0], gf0, r[0]);
     }
 
-    M(r[3], 0, r[0], 0, r[1], 0);
+    M(r[3], r[0], r[1]);
   }
 
   static void crypto_sign_open(final byte[] m,
